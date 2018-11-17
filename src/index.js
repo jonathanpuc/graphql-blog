@@ -77,9 +77,28 @@ const typeDefs = `
     }
 
     type Mutation {
-        createUser(name: String!, email: String!, age: Int): User!
-        createPost(title: String!, body: String!, published: Boolean!, author: ID!): Post!
-        createComment(body: String!, post: String!, author: ID!): Comment!
+        createUser(data: CreateUserInput): User!
+        createPost(data: CreatePostInput): Post!
+        createComment(data: CreateCommentInput): Comment!
+    }
+
+    input CreateUserInput {
+        name: String!
+        email: String!
+        age: Int
+    }
+
+    input CreatePostInput {
+        title: String! 
+        body: String! 
+        published: Boolean! 
+        author: ID!
+    }
+
+    input CreateCommentInput {
+        body: String!
+        post: ID!
+        author: ID!
     }
 
     type User {
@@ -151,41 +170,37 @@ const resolvers = {
     },
     Mutation: {
         createUser(parent, args, ctx, info) {
-            const { name, email, age } = args
-            const emailTaken = users.some(user => user.email === email)
+            const { data } = args
+
+            const emailTaken = users.some(user => user.email === data.email)
             if (emailTaken) {
                 throw new Error('Email is already in use.')
             }
-            const user = { id: uuidv4(), name, email, age }
+            const user = { id: uuidv4(), ...data }
             users.push(user)
 
             return user
         },
         createPost(parent, args, ctx, info) {
-
-            const isValidAuthor = users.some(user => user.id === args.author)
+            const { data } = args
+            const isValidAuthor = users.some(user => user.id === data.author)
 
             if (!isValidAuthor) {
                 throw new Error('That author is not a user.')
             }
 
-            const { title, body, published, author } = args
-
             const post = {
                 id: uuidv4(),
-                title,
-                body,
-                author,
-                published
+                ...data
             }
 
             posts.push(post)
             return post
         },
         createComment(parent, args, ctx, info) {
-            const { body, post, author } = args
-            const isValidAuthor = users.some(user => user.id === author)
-            const postExists = posts.some(currentPost => currentPost.id === post && currentPost.published)
+            const { data } = args
+            const isValidAuthor = users.some(user => user.id === data.author)
+            const postExists = posts.some(currentPost => currentPost.id === data.post && currentPost.published)
             if (!isValidAuthor) {
                 throw new Error('That author is not a user.')
             } else if (!postExists) {
@@ -194,9 +209,7 @@ const resolvers = {
 
             const comment = {
                 id: uuidv4(),
-                body,
-                author,
-                post
+                ...data
             }
 
             comments.push(comment)
