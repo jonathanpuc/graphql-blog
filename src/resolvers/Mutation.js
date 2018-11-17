@@ -112,7 +112,7 @@ const Mutation = {
         return post
 
     },
-    createComment(parent, args, { db }, info) {
+    createComment(parent, args, { db, pubsub }, info) {
         const { data } = args
         const isValidAuthor = db.users.some(user => user.id === data.author)
         const postExists = db.posts.some(currentPost => currentPost.id === data.post && currentPost.published)
@@ -127,12 +127,14 @@ const Mutation = {
             ...data
         }
 
+
         db.comments.push(comment)
+        pubsub.publish(`comment ${args.data.post}`, { comment })
         return comment
     },
     updateComment(parents, args, { db }, info) {
-        const { data } = args
-        const comment = db.comments.find(comment => comment.id === args.id)
+        const { data, id } = args
+        const comment = db.comments.find(comment => comment.id === id)
         if (!comment) {
             throw new Error('Comment does not exist.')
         }
